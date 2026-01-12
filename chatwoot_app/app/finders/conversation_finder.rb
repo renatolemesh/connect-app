@@ -144,7 +144,15 @@ class ConversationFinder
   def filter_by_status
     return if params[:status] == 'all'
 
-    @conversations = @conversations.where(status: params[:status] || DEFAULT_STATUS)
+    if params[:status] == 'pending'
+      Rails.logger.info "=== UNREAD FILTER ==="
+      Rails.logger.info "Total conversations before filter: #{@conversations.count}"
+      @conversations = @conversations.where('agent_last_seen_at IS NULL OR agent_last_seen_at < last_activity_at')
+      Rails.logger.info "Total conversations after filter: #{@conversations.count}"
+      Rails.logger.info "=== END UNREAD FILTER ==="
+    else
+      @conversations = @conversations.where(status: params[:status] || DEFAULT_STATUS)
+    end
   end
 
   def filter_by_team

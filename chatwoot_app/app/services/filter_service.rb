@@ -21,6 +21,12 @@ class FilterService
   def perform; end
 
   def filter_operation(query_hash, current_index)
+    # Handle unread filter for pending status
+    if query_hash[:attribute_key] == 'status' && query_hash[:values]&.include?('pending')
+      @filter_values["value_#{current_index}"] = nil
+      return "(agent_last_seen_at IS NULL OR agent_last_seen_at < last_activity_at)"
+    end
+
     case query_hash[:filter_operator]
     when 'equal_to', 'not_equal_to'
       @filter_values["value_#{current_index}"] = filter_values(query_hash)
@@ -45,6 +51,11 @@ class FilterService
   def filter_values(query_hash)
     attribute_key = query_hash['attribute_key']
     values = query_hash['values']
+
+    # Intercept pending status to return unread conversations
+    if attribute_key == 'status' && values.include?('pending')
+      return :unread_filter  # Special marker
+    end
 
     return conversation_status_values(values) if attribute_key == 'status'
     return conversation_priority_values(values) if attribute_key == 'priority'
@@ -197,6 +208,12 @@ class FilterService
 
   def query_builder(model_filters)
     @params[:payload].each_with_index do |query_hash, current_index|
+      # Handle pending as unread
+      if query_hash['attribute_key'] == 'status' && query_hash['values']&.include?('pending')
+        @query_string += " (agent_last_seen_at IS NULL OR agent_last_seen_at < last_activity_at) #{query_hash[:query_operator]}"
+        next
+      end
+      
       @query_string += " #{build_condition_query(model_filters, query_hash, current_index).strip}"
     end
     base_relation.where(@query_string, @filter_values.with_indifferent_access)

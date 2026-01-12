@@ -394,6 +394,7 @@ function emitConversationLoaded() {
 function fetchFilteredConversations(payload) {
   payload = useSnakeCase(payload);
   let page = currentFiltersPage.value + 1;
+  console.log('fetchFilteredConversations page:', page);
   store
     .dispatch('fetchFilteredConversations', {
       queryData: filterQueryGenerator(payload),
@@ -570,6 +571,7 @@ function fetchConversations() {
 }
 
 function resetAndFetchData() {
+  console.log('resetAndFetchData called');
   appliedFilter.value = [];
   resetBulkActions();
   store.dispatch('conversationPage/reset');
